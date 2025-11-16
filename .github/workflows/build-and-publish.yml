@@ -27,13 +27,18 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Debug: repo layout (test job)
+      - name: Debug repo layout (test job)
         run: |
           echo "PWD: $(pwd)"
           ls -la
-          echo "app folder:"
+          echo "---- app folder ----"
           ls -la app || true
-          [ -f app/pom.xml ] && echo "FOUND app/pom.xml" || (echo "MISSING app/pom.xml" && exit 1)
+          if [ -f app/pom.xml ]; then
+            echo "FOUND app/pom.xml"
+          else
+            echo "MISSING app/pom.xml"
+            exit 1
+          fi
 
       - name: Run Maven tests
         run: mvn -B -f ./app/pom.xml test
@@ -45,15 +50,20 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository (docker job)
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Debug: repo layout (docker job)
+      - name: Debug repo layout (docker job)
         run: |
           echo "PWD: $(pwd)"
           ls -la
+          echo "---- app folder ----"
           ls -la app || true
-          [ -f app/target/*.jar ] && echo "JAR present in app/target" || echo "No JAR yet - did package run?"
+          if ls app/target/*.jar >/dev/null 2>&1; then
+            echo "JAR present in app/target"
+          else
+            echo "JAR missing - did Maven package run?"
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
