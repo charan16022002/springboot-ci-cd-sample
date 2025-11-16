@@ -6,10 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+env:
+  IMAGE_NAME: ghcr.io/charan16022002/springboot-ci-cd-sample
 
+jobs:
+  test:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,15 +23,45 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Debug - Show repo layout
+      - name: Debug: show repo layout (test job)
         run: |
-          echo "Working directory: $(pwd)"
-          echo "Files in root:"
+          echo "PWD: $(pwd)"
           ls -la
-          echo "Files in app folder:"
           ls -la app || true
-          echo "Testing if pom.xml exists:"
-          [ -f app/pom.xml ] && echo "FOUND pom.xml" || echo "NOT FOUND"
+          [ -f app/pom.xml ] && echo "FOUND app/pom.xml" || echo "MISSING app/pom.xml"
 
       - name: Run Maven tests
         run: mvn -B -f ./app/pom.xml test
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (required for this job too)
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (if you need Maven build for jar)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Debug: show repo layout (docker job)
+        run: |
+          echo "PWD: $(pwd)"
+          ls -la
+          ls -la app || true
+          [ -f app/pom.xml ] && echo "FOUND app/pom.xml" || echo "MISSING app/pom.xml"
+
+      - name: Build project (package)
+        run: mvn -B -f ./app/pom.xml -DskipTests package
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:latest
+        # If pushing to GHCR make sure you have permissions and a GITHUB_TOKEN or CR_PAT set.
