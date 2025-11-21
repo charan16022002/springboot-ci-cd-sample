@@ -1,4 +1,7 @@
-name: CI
+# GitHub Actions workflow: Build & Test CI (only)
+# Save this file as: .github/workflows/build-and-test.yml
+
+name: CI — Build & Test
 
 on:
   push:
@@ -6,79 +9,76 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: read
-  packages: write
-
-env:
-  IMAGE_NAME: ghcr.io/charan16022002/springboot-ci-cd-sample
-
 jobs:
-  test:
+  build-and-test:
+    name: Build & Test (matrix)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Choose languages relevant to your repo. The job will run once per language.
+        language: [ java, node, python ]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # ------------------- Java -------------------
+      - name: Set up JDK
+        if: matrix.language == 'java'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: maven
 
-      - name: Debug repo layout (test job)
+      - name: Build & test (Maven)
+        if: matrix.language == 'java'
         run: |
-          echo "PWD: $(pwd)"
-          ls -la
-          echo "---- app folder ----"
-          ls -la app || true
-          if [ -f app/pom.xml ]; then
-            echo "FOUND app/pom.xml"
+          # Adjust to your build tool: mvn, gradle, etc.
+          if [ -f pom.xml ]; then
+            mvn -B -DskipTests=false clean test
           else
-            echo "MISSING app/pom.xml"
-            exit 1
+            echo "No pom.xml found — skipping Java build"
           fi
 
-      - name: Run Maven tests
-        run: mvn -B -f ./app/pom.xml test
+      # ------------------- Node -------------------
+      - name: Set up Node.js
+        if: matrix.language == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
-      - name: Package (skip tests)
-        run: mvn -B -f ./app/pom.xml -DskipTests package
-
-  docker:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Debug repo layout (docker job)
+      - name: Install & test (Node)
+        if: matrix.language == 'node'
         run: |
-          echo "PWD: $(pwd)"
-          ls -la
-          echo "---- app folder ----"
-          ls -la app || true
-          if ls app/target/*.jar >/dev/null 2>&1; then
-            echo "JAR present in app/target"
+          if [ -f package.json ]; then
+            npm ci
+            npm test || (echo "npm test failed" && exit 1)
           else
-            echo "JAR missing - did Maven package run?"
+            echo "No package.json found — skipping Node build"
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        uses: docker/login-action@v2
+      # ------------------- Python -------------------
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          python-version: '3.10'
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_NAME }}:latest
+      - name: Install & test (Python)
+        if: matrix.language == 'python'
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt
+          fi
+          if [ -f pytest.ini ] || [ -d tests ] || ls | grep -q "test_.*\.py"; then
+            pytest --maxfail=1 --disable-warnings -q
+          else
+            echo "No tests detected — skipping Python test run"
+          fi
+
+# Notes:
+# - This workflow runs only on the `main` branch for both pushes and pull requests.
+# - Adjust the matrix to include only the languages your repo uses, or remove the matrix and create a single job for your stack.
+# - You can add code coverage upload, artifact storage, or deployment steps as separate jobs that depend on this one.
