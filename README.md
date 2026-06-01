@@ -1,7 +1,7 @@
 # springboot-ci-cd-sample
 
 **What this repo shows:**  
-A minimal Spring Boot app + complete GitHub Actions CI pipeline that builds, runs tests, containerizes and publishes a Docker image to **GitHub Container Registry (GHCR)**.
+A minimal Spring Boot app + complete GitHub Actions CI & CD pipeline that builds, runs tests, containerizes and publishes a Docker image to **GitHub Container Registry (GHCR)**.
 
 ---
 
