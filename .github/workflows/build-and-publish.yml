@@ -1,84 +1,13 @@
-# GitHub Actions workflow: Build & Test CI (only)
-# Save this file as: .github/workflows/build-and-test.yml
+- name: Build & test (Maven)
+  if: matrix.language == 'java'
+  run: |
+    if [ -f pom.xml ]; then
+      mvn -B -DskipTests=false clean test
+    else
+      echo "No pom.xml found — skipping Java build"
+    fi
 
-name: CI — Build & Test
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-and-test:
-    name: Build & Test (matrix)
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Choose languages relevant to your repo. The job will run once per language.
-        language: [ java, node, python ]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # ------------------- Java -------------------
-      - name: Set up JDK
-        if: matrix.language == 'java'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Build & test (Maven)
-        if: matrix.language == 'java'
-        run: |
-          # Adjust to your build tool: mvn, gradle, etc.
-          if [ -f pom.xml ]; then
-            mvn -B -DskipTests=false clean test
-          else
-            echo "No pom.xml found — skipping Java build"
-          fi
-
-      # ------------------- Node -------------------
-      - name: Set up Node.js
-        if: matrix.language == 'node'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install & test (Node)
-        if: matrix.language == 'node'
-        run: |
-          if [ -f package.json ]; then
-            npm ci
-            npm test || (echo "npm test failed" && exit 1)
-          else
-            echo "No package.json found — skipping Node build"
-          fi
-
-      # ------------------- Python -------------------
-      - name: Set up Python
-        if: matrix.language == 'python'
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install & test (Python)
-        if: matrix.language == 'python'
-        run: |
-          if [ -f requirements.txt ]; then
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-          fi
-          if [ -f pytest.ini ] || [ -d tests ] || ls | grep -q "test_.*\.py"; then
-            pytest --maxfail=1 --disable-warnings -q
-          else
-            echo "No tests detected — skipping Python test run"
-          fi
-
-# Notes:
-# - This workflow runs only on the `main` branch for both pushes and pull requests.
-# - Adjust the matrix to include only the languages your repo uses, or remove the matrix and create a single job for your stack.
-# - You can add code coverage upload, artifact storage, or deployment steps as separate jobs that depend on this one.
+- name: Build Docker Image
+  if: matrix.language == 'java'
+  run: |
+    docker build -t springboot-app:latest .
