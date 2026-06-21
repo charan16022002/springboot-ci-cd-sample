@@ -1,13 +1,33 @@
-- name: Build & test (Maven)
-  if: matrix.language == 'java'
-  run: |
-    if [ -f pom.xml ]; then
-      mvn -B -DskipTests=false clean test
-    else
-      echo "No pom.xml found — skipping Java build"
-    fi
+name: Build and Publish
 
-- name: Build Docker Image
-  if: matrix.language == 'java'
-  run: |
-    docker build -t springboot-app:latest .
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build & Test (Maven)
+        run: |
+          if [ -f pom.xml ]; then
+            mvn clean test
+          else
+            echo "No pom.xml found"
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -t springboot-app:latest .
