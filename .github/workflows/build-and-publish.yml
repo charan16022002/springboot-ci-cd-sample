@@ -7,27 +7,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Build & Test (Maven)
-        run: |
-          if [ -f pom.xml ]; then
-            mvn clean test
-          else
-            echo "No pom.xml found"
-          fi
-
-      - name: Build Docker Image
-        run: |
-          docker build -t springboot-app:latest .
+      - name: Run Tests
+        run: mvn clean test
