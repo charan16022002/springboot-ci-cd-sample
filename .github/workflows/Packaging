@@ -26,3 +26,9 @@ jobs:
       - name: Package Application
         working-directory: ./app
         run: mvn clean package -DskipTests
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: springboot-jar
+          path: app/target/*.jar
