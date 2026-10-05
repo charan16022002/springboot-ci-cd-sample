@@ -2,7 +2,7 @@ name: Packaging into JAR file
 
 on:
   workflow_run:
-    workflows: ["Test"]
+    workflows: ["build-and-publish"]
     types:
       - completed
 
