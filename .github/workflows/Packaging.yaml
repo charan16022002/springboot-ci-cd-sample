@@ -18,7 +18,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -26,6 +26,9 @@ jobs:
       - name: Package Application
         working-directory: ./app
         run: mvn clean package -DskipTests
+
+      - name: Check JAR
+        run: ls -lh app/target/
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
